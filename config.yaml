@@ -1,0 +1,141 @@
+###############################################################################
+# AI Network Attack Forecasting — Configuration
+###############################################################################
+
+data:
+  dataset: "cic-ids-2018"          # "cic-ids-2018" or "ctu-13"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  synthetic_dir: "data/synthetic"
+  window_size_seconds: 60          # seconds per temporal window
+  context_length: 16               # number of past windows for context
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+  max_flows_per_window: 500        # max flows aggregated per window
+  random_seed: 42
+
+features:
+  # Flow-level features to extract
+  flow_features:
+    - "Flow Duration"
+    - "Tot Fwd Pkts"
+    - "Tot Bwd Pkts"
+    - "TotLen Fwd Pkts"
+    - "TotLen Bwd Pkts"
+    - "Fwd Pkt Len Max"
+    - "Fwd Pkt Len Min"
+    - "Fwd Pkt Len Mean"
+    - "Fwd Pkt Len Std"
+    - "Bwd Pkt Len Max"
+    - "Bwd Pkt Len Min"
+    - "Bwd Pkt Len Mean"
+    - "Bwd Pkt Len Std"
+    - "Flow Byts/s"
+    - "Flow Pkts/s"
+    - "Flow IAT Mean"
+    - "Flow IAT Std"
+    - "Flow IAT Max"
+    - "Flow IAT Min"
+    - "Fwd IAT Tot"
+    - "Fwd IAT Mean"
+    - "Fwd IAT Std"
+    - "Fwd IAT Max"
+    - "Fwd IAT Min"
+    - "Bwd IAT Tot"
+    - "Bwd IAT Mean"
+    - "Bwd IAT Std"
+    - "Bwd IAT Max"
+    - "Bwd IAT Min"
+    - "Fwd PSH Flags"
+    - "Bwd PSH Flags"
+    - "Fwd URG Flags"
+    - "Bwd URG Flags"
+    - "Fwd Header Len"
+    - "Bwd Header Len"
+    - "Fwd Pkts/s"
+    - "Bwd Pkts/s"
+    - "Pkt Len Min"
+    - "Pkt Len Max"
+    - "Pkt Len Mean"
+    - "Pkt Len Std"
+    - "Pkt Len Var"
+    - "FIN Flag Cnt"
+    - "SYN Flag Cnt"
+    - "RST Flag Cnt"
+    - "PSH Flag Cnt"
+    - "ACK Flag Cnt"
+    - "URG Flag Cnt"
+    - "CWE Flag Count"
+    - "ECE Flag Cnt"
+    - "Down/Up Ratio"
+    - "Pkt Size Avg"
+    - "Fwd Seg Size Avg"
+    - "Bwd Seg Size Avg"
+    - "Subflow Fwd Pkts"
+    - "Subflow Fwd Byts"
+    - "Subflow Bwd Pkts"
+    - "Subflow Bwd Byts"
+    - "Init Fwd Win Byts"
+    - "Init Bwd Win Byts"
+    - "Fwd Act Data Pkts"
+    - "Fwd Seg Size Min"
+    - "Active Mean"
+    - "Active Std"
+    - "Active Max"
+    - "Active Min"
+    - "Idle Mean"
+    - "Idle Std"
+    - "Idle Max"
+    - "Idle Min"
+
+  # Number of features after extraction and encoding
+  num_raw_features: 68
+  num_state_features: 76           # after adding derived features
+
+model:
+  type: "transformer"              # "transformer" or "lstm"
+  latent_dim: 128                  # state encoder output dimension
+  num_heads: 4                     # transformer attention heads
+  num_layers: 3                    # transformer/lstm layers
+  ffn_dim: 256                     # transformer feedforward dimension
+  dropout: 0.15
+  num_attack_stages: 6             # Benign + 5 ATT&CK stages
+  num_gaussians: 5                 # MDN mixture components
+
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  epochs: 50
+  early_stopping_patience: 7
+  gradient_clip_norm: 1.0
+  lr_scheduler: "cosine"           # "cosine" or "step"
+  warmup_epochs: 3
+  loss_weights:
+    transition: 1.0
+    infiltration: 2.0
+    stage: 1.5
+  device: "auto"                   # "auto", "cpu", or "cuda"
+
+prediction:
+  k_steps: 10                     # forward simulation steps
+  confidence_decay: 0.95          # decay per step for longer horizons
+  alert_thresholds:
+    low: 0.3
+    medium: 0.6
+    high: 0.8
+    critical: 0.95
+
+explainability:
+  method: "both"                   # "attention", "shap", or "both"
+  top_k_features: 10
+  shap_background_samples: 100
+  shap_method: "gradient"          # "gradient", "deep", or "kernel"
+
+dashboard:
+  theme: "dark"
+  port: 8501
+  max_upload_size_mb: 200
+  streaming_interval_ms: 80
+  chart_max_points: 200
