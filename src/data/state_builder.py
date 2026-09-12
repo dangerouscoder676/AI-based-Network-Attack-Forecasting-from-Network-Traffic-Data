@@ -1,6 +1,27 @@
 import numpy as np
 import pandas as pd
-from typing import Tuple, List
+from typing import Tuple, List, Optional
+
+def compress_states(states: np.ndarray, target_dim: int, pca=None) -> Tuple[np.ndarray, object]:
+    """
+    Reduce state vectors to a fixed target dimension using PCA.
+
+    The flow-level pipeline produces a variable number of aggregate features
+    (means + stds + maxes + counts). This compresses them to the model's
+    configured state dimension so training/inference stay consistent.
+    """
+    if states.ndim != 2 or states.shape[-1] == target_dim:
+        return states, pca
+
+    from sklearn.decomposition import PCA
+
+    if pca is None:
+        pca = PCA(n_components=target_dim, random_state=42)
+        states_compressed = pca.fit_transform(states)
+    else:
+        states_compressed = pca.transform(states)
+
+    return states_compressed.astype(np.float32), pca
 
 class StateBuilder:
     """
@@ -76,21 +97,34 @@ class StateBuilder:
             
         return np.array(states), np.array(labels)
 
+    def build_forecast_sequences(self, states: np.ndarray, labels: np.ndarray, context_length: int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Build sliding-window sequences with explicit next-state targets.
+
+        The World Model learns P(S_{t+1} | S_{t-k+1}, ..., S_t), so each
+        sequence must be paired with the state that immediately follows it.
+        """
+        if len(states) <= context_length:
+            return np.array([]), np.array([]), np.array([])
+
+        num_sequences = len(states) - context_length
+
+        sequences = np.zeros((num_sequences, context_length, states.shape[1]), dtype=np.float32)
+        next_states = np.zeros((num_sequences, states.shape[1]), dtype=np.float32)
+        seq_labels = np.zeros(num_sequences, dtype=np.int64)
+
+        for i in range(num_sequences):
+            sequences[i] = states[i:i + context_length]
+            next_states[i] = states[i + context_length]
+            # Label of the state being predicted (t+1)
+            seq_labels[i] = labels[i + context_length]
+
+        return sequences, next_states, seq_labels
+
     def build_sequences(self, states: np.ndarray, labels: np.ndarray, context_length: int = 16) -> Tuple[np.ndarray, np.ndarray]:
         """
         Construct sliding-window sequences.
+
+        Label sampled from the *next* state (which the sequence must predict).
         """
-        if len(states) < context_length:
-            return np.array([]), np.array([])
-            
-        num_sequences = len(states) - context_length + 1
-        
-        sequences = np.zeros((num_sequences, context_length, states.shape[1]), dtype=np.float32)
-        seq_labels = np.zeros(num_sequences, dtype=np.int64)
-        
-        for i in range(num_sequences):
-            sequences[i] = states[i:i+context_length]
-            # Label is the label of the last window in the context
-            seq_labels[i] = labels[i+context_length-1]
-            
+        sequences, _, seq_labels = self.build_forecast_sequences(states, labels, context_length)
         return sequences, seq_labels

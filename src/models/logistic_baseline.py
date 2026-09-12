@@ -10,7 +10,6 @@ class LogisticBaseline:
     def __init__(self, random_state: int = 42):
         self.model = LogisticRegression(
             max_iter=1000,
-            multi_class='multinomial',
             random_state=random_state,
             n_jobs=-1
         )

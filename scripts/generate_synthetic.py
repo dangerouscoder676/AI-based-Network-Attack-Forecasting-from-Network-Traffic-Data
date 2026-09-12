@@ -26,19 +26,30 @@ def main():
     # Binary infiltration label (0 for benign stage 0, 1 for any attack stage > 0)
     labels = (stages > 0).astype(np.int64)
     
-    # Construct sequences
-    num_seq = len(states) - args.context_length + 1
+    # Construct sequences with explicit next-state targets
+    num_seq = len(states) - args.context_length
     sequences = np.zeros((num_seq, args.context_length, args.num_features), dtype=np.float32)
+    next_states = np.zeros((num_seq, args.num_features), dtype=np.float32)
     seq_labels = np.zeros((num_seq, 1), dtype=np.float32)
     seq_stages = np.zeros((num_seq,), dtype=np.int64)
     
     for i in range(num_seq):
         sequences[i] = states[i:i+args.context_length]
-        seq_labels[i] = labels[i+args.context_length-1]
-        seq_stages[i] = stages[i+args.context_length-1]
+        next_states[i] = states[i+args.context_length]
+        seq_labels[i] = labels[i+args.context_length]
+        seq_stages[i] = stages[i+args.context_length]
         
     npz_path = os.path.join(args.output_dir, "synthetic_data.npz")
-    np.savez_compressed(npz_path, sequences=sequences, labels=seq_labels, stages=seq_stages, feature_names=feature_names)
+    np.savez_compressed(
+        npz_path,
+        sequences=sequences,
+        next_states=next_states,
+        labels=seq_labels,
+        stages=seq_stages,
+        states=states,
+        state_stages=stages,
+        feature_names=feature_names
+    )
     print(f"Saved synthetic data to {npz_path}")
     
     # Save a small CSV sample for dashboard demo

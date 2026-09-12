@@ -158,10 +158,12 @@ class WorldModel(nn.Module):
         }
         
     @classmethod
-    def from_config(cls, config: dict):
+    def from_config(cls, config):
         """
-        Instantiate WorldModel from a configuration dictionary.
+        Instantiate WorldModel from a configuration dictionary or Config object.
         """
+        if hasattr(config, 'as_dict'):
+            config = config.as_dict()
         input_dim = config.get('features', {}).get('num_state_features', 76)
         latent_dim = config.get('model', {}).get('latent_dim', 128)
         num_stages = config.get('model', {}).get('num_attack_stages', 6)

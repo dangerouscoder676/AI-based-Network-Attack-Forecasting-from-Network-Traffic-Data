@@ -74,33 +74,47 @@ class SyntheticGenerator:
         feature_names = [f"feature_{i}" for i in range(num_features)]
         return states, labels, feature_names
 
-    def generate_sequences(self, context_length: int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def generate_sequences(self, context_length: int = 16) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        Generate contextual sequences.
+        Generate contextual sequences with explicit next-state targets.
+
+        Returns:
+            sequences:     [num_seq, context_length, num_features]
+            next_states:   [num_seq, num_features]
+            seq_labels:    [num_seq] binary infiltration label of predicted state
+            seq_stages:    [num_seq] ATT&CK stage of predicted state
         """
         states, labels, _ = self.generate(num_windows=1000, num_features=76)
-        
-        num_sequences = len(states) - context_length + 1
+
+        num_sequences = len(states) - context_length
+        if num_sequences <= 0:
+            return (np.zeros((0, context_length, 76), dtype=np.float32),
+                    np.zeros((0, 76), dtype=np.float32),
+                    np.zeros(0, dtype=np.int64),
+                    np.zeros(0, dtype=np.int64))
+
         sequences = np.zeros((num_sequences, context_length, states.shape[1]), dtype=np.float32)
+        next_states = np.zeros((num_sequences, states.shape[1]), dtype=np.float32)
         seq_labels = np.zeros(num_sequences, dtype=np.int64)
-        
+        seq_stages = np.zeros(num_sequences, dtype=np.int64)
+
         for i in range(num_sequences):
-            sequences[i] = states[i:i+context_length]
-            seq_labels[i] = labels[i+context_length-1]
-            
-        # seq_attack_stages is same as seq_labels for now
-        seq_attack_stages = seq_labels.copy()
-            
-        return sequences, seq_labels, seq_attack_stages
+            sequences[i] = states[i:i + context_length]
+            next_states[i] = states[i + context_length]
+            seq_labels[i] = 1 if labels[i + context_length] > 0 else 0
+            seq_stages[i] = labels[i + context_length]
+
+        return sequences, next_states, seq_labels, seq_stages
 
     def save(self, output_dir: str):
-        """Save to npz."""
+        """Save to npz with sequences, next_states, infiltration labels and stages."""
         os.makedirs(output_dir, exist_ok=True)
-        sequences, seq_labels, seq_attack_stages = self.generate_sequences()
-        
+        sequences, next_states, seq_labels, seq_stages = self.generate_sequences()
+
         np.savez_compressed(
             os.path.join(output_dir, "synthetic_data.npz"),
             sequences=sequences,
+            next_states=next_states,
             labels=seq_labels,
-            attack_stages=seq_attack_stages
+            stages=seq_stages
         )

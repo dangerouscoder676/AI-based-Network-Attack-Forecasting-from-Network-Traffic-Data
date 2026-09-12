@@ -40,6 +40,19 @@ class Config:
     def items(self):
         return self._dict.items()
 
+    def as_dict(self) -> Dict[str, Any]:
+        """Return the underlying config as a plain (nested) dict.
+
+        Useful when passing a Config object to APIs that expect raw dicts.
+        """
+        def _to_dict(value):
+            if isinstance(value, Config):
+                return value.as_dict()
+            if isinstance(value, dict):
+                return {k: _to_dict(v) for k, v in value.items()}
+            return value
+        return _to_dict(self._dict)
+
 def get_project_root() -> Path:
     return Path(__file__).parent.parent.parent
 

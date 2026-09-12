@@ -57,22 +57,35 @@ class TemporalTransformer(nn.Module):
                 
     def _register_attention_hooks(self):
         """
-        Registers forward hooks on the MultiheadAttention layers to capture attention weights.
+        Wraps the MultiheadAttention forward on every encoder layer so that
+        real per-head attention weights are captured during the forward pass.
+
+        nn.TransformerEncoderLayer calls internal MHA with need_weights=False,
+        which discards the weights. We override the MHA forward to request
+        (batch, nhead, seq_len, seq_len) attention matrices and store them.
         """
-        def get_hook(layer_idx):
-            def hook(module, input, output):
-                # multihead_attention forward returns (attn_output, attn_weights)
-                # where attn_weights is of shape (batch, nhead, seq_len, seq_len) if average_attn_weights=False
-                # Note: PyTorch's default returns (batch, seq_len, seq_len) averaged over heads unless average_attn_weights=False.
-                # Since we can't easily change the TransformerEncoderLayer's MHA call, we extract what is given.
-                # Standard hook on TransformerEncoderLayer MHA:
-                attn_output, attn_weights = output
-                self.attention_weights[layer_idx] = attn_weights
-            return hook
-            
         for i, layer in enumerate(self.transformer_encoder.layers):
-            # register hook on self_attn
-            layer.self_attn.register_forward_hook(get_hook(i))
+            orig_forward = layer.self_attn.forward
+
+            def make_wrapper(original, layer_idx):
+                def wrapped(query, key, value, key_padding_mask=None, need_weights=True,
+                            attn_mask=None, average_attn_weights=True, is_causal=False):
+                    out, weights = original(
+                        query, key, value,
+                        key_padding_mask=key_padding_mask,
+                        need_weights=True,
+                        attn_mask=attn_mask,
+                        average_attn_weights=False,
+                        is_causal=is_causal,
+                    )
+                    if weights is not None:
+                        self.attention_weights[layer_idx] = weights.detach()
+                    else:
+                        self.attention_weights.pop(layer_idx, None)
+                    return out, weights
+                return wrapped
+
+            layer.self_attn.forward = make_wrapper(orig_forward, i)
 
     def _generate_square_subsequent_mask(self, sz: int, device: torch.device) -> torch.Tensor:
         """

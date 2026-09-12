@@ -32,18 +32,22 @@ class RolloutEngine:
             for step in range(k_steps):
                 outputs = self.model(states)
                 
-                # Extract predictions
+                # Extract predictions (WorldModel returns 'next_state_pred')
                 if isinstance(outputs, dict):
-                    next_state = outputs.get('next_state', states[:, -1, :])
+                    next_state = outputs.get('next_state_pred', outputs.get(
+                        'next_state', states[:, -1, :]))
                     inf_prob = outputs.get('infiltration_prob', torch.zeros(batch_size, 1, device=self.device)).squeeze(-1)
                     stage_logits = outputs.get('stage_logits', torch.zeros(batch_size, 6, device=self.device))
+                    attention = outputs.get('attention_weights', None)
                 else:
                     # Fallback for mocked model
                     next_state = states[:, -1, :]
                     inf_prob = torch.zeros(batch_size, device=self.device)
                     stage_logits = torch.zeros(batch_size, 6, device=self.device)
+                    attention = None
                 
-                # Update context window
+                # Update context window with the predicted next state so the
+                # model autoregressively simulates future states.
                 states = torch.cat([states[:, 1:, :], next_state.unsqueeze(1)], dim=1)
                 
                 stage_idx = torch.argmax(stage_logits, dim=-1)
@@ -60,6 +64,9 @@ class RolloutEngine:
                 results['stage_names'].append(mapper.get_stage_name(idx))
                 results['predicted_states'].append(next_state[0])
                 results['confidence'].append(confidence)
+                
+                if attention is not None:
+                    results.setdefault('attention', []).append(attention)
                 
         results['predicted_states'] = torch.stack(results['predicted_states'], dim=0)
         return results
