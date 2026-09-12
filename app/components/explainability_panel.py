@@ -17,7 +17,7 @@ def render_explainability_panel(
 ):
     """Render the explainability panel with SHAP and attention visualizations."""
 
-    from app.components.charts import (
+    from components.charts import (
         create_feature_importance_bar,
         create_attention_heatmap,
         STAGE_COLORS,
@@ -126,7 +126,7 @@ def render_mitre_attack_panel(
 ):
     """Render the MITRE ATT&CK information panel."""
 
-    from app.components.charts import create_kill_chain_html, STAGE_COLORS, STAGE_NAMES
+    from components.charts import create_kill_chain_html, STAGE_COLORS, STAGE_NAMES
 
     st.markdown("### 🎯 MITRE ATT&CK Mapping")
 

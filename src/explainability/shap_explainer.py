@@ -54,23 +54,33 @@ class ShapExplainer:
 
         if isinstance(shap_values, torch.Tensor):
             shap_values = shap_values.cpu().detach().numpy()
-            
-        if shap_values.ndim == 3:
-            feat_imp = np.abs(shap_values).mean(axis=(0, 1))
+
+        abs_vals = np.abs(shap_values)
+        if abs_vals.ndim == 4:
+            # [samples, time, features, outputs]
+            feat_imp = abs_vals.mean(axis=(0, 3)).mean(axis=0)
+        elif abs_vals.ndim == 3:
+            # [samples, features, outputs]
+            feat_imp = abs_vals.mean(axis=(0, 2))
+        elif abs_vals.ndim == 2:
+            feat_imp = abs_vals.mean(axis=0)
         else:
-            feat_imp = np.abs(shap_values).mean(axis=0)
-            
+            feat_imp = np.zeros_like(np.asarray(shap_values, dtype=np.float64))
+
         return {
             'shap_values': shap_values,
             'feature_importance': feat_imp,
-            'top_features': [] 
+            'top_features': []
         }
 
     def get_top_k_features(self, shap_values: np.ndarray, feature_names: list, k: int = 10) -> List[Tuple[str, float]]:
-        if shap_values.ndim == 3:
-            imp = np.abs(shap_values).mean(axis=(0, 1))
+        abs_vals = np.abs(shap_values)
+        if abs_vals.ndim == 4:
+            imp = abs_vals.mean(axis=(0, 3)).mean(axis=0)
+        elif abs_vals.ndim == 3:
+            imp = abs_vals.mean(axis=(0, 2))
         else:
-            imp = np.abs(shap_values).mean(axis=0)
-            
+            imp = abs_vals.mean(axis=0)
+
         indices = np.argsort(imp)[-k:][::-1]
         return [(feature_names[i], float(imp[i])) for i in indices if i < len(feature_names)]

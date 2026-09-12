@@ -65,7 +65,7 @@ class AttentionExplainer:
                 'feature_importance': np.zeros(features),
             }
 
-        all_weights = np.concatenate(stacked, axis=0)  # [layers, batch, heads, seq, seq]
+        all_weights = np.stack(stacked, axis=0)  # [layers, batch, heads, seq, seq]
 
         # Temporal attention: mean over layers, heads, and batch -> column sum
         mean_attn = all_weights.mean(axis=(0, 2))      # [batch, seq, seq]

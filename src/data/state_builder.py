@@ -15,8 +15,12 @@ def compress_states(states: np.ndarray, target_dim: int, pca=None) -> Tuple[np.n
 
     from sklearn.decomposition import PCA
 
+    n_components = min(target_dim, states.shape[0], states.shape[1])
+    if n_components < 1:
+        raise ValueError("Not enough windows to compress states.")
+
     if pca is None:
-        pca = PCA(n_components=target_dim, random_state=42)
+        pca = PCA(n_components=n_components, random_state=42)
         states_compressed = pca.fit_transform(states)
     else:
         states_compressed = pca.transform(states)

@@ -9,7 +9,7 @@ import numpy as np
 from typing import List, Optional, Dict, Tuple
 
 
-# ─── Color Palette ───────────────────────────────────────────────────────────
+# â”€â”€â”€ Color Palette â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 COLORS = {
     'primary': '#00ffaa',
     'secondary': '#00aaff',
@@ -117,8 +117,8 @@ def create_infiltration_timeline(
     ))
 
     fig = _apply_dark_layout(fig, title, height=380)
-    fig.update_yaxis(range=[0, 1.05], title='Probability')
-    fig.update_xaxis(title='Time Step')
+    fig.update_yaxes(range=[0, 1.05], title='Probability')
+    fig.update_xaxes(title='Time Step')
 
     return fig
 
@@ -149,7 +149,7 @@ def create_attack_stage_timeline(
         ))
 
     fig = _apply_dark_layout(fig, title, height=250)
-    fig.update_yaxis(
+    fig.update_yaxes(
         tickvals=list(STAGE_NAMES.keys()),
         ticktext=list(STAGE_NAMES.values()),
         title='Attack Stage',
@@ -184,7 +184,7 @@ def create_feature_importance_bar(
     ))
 
     fig = _apply_dark_layout(fig, title, height=max(300, top_k * 28))
-    fig.update_xaxis(title='Attribution Score')
+    fig.update_xaxes(title='Attribution Score')
 
     return fig
 
@@ -212,8 +212,8 @@ def create_attention_heatmap(
     ))
 
     fig = _apply_dark_layout(fig, title, height=400)
-    fig.update_xaxis(title='Key (Source)')
-    fig.update_yaxis(title='Query (Target)')
+    fig.update_xaxes(title='Key (Source)')
+    fig.update_yaxes(title='Query (Target)')
 
     return fig
 
@@ -272,8 +272,8 @@ def create_confusion_matrix(
     ))
 
     fig = _apply_dark_layout(fig, title, height=450)
-    fig.update_xaxis(title='Predicted')
-    fig.update_yaxis(title='Actual')
+    fig.update_xaxes(title='Predicted')
+    fig.update_yaxes(title='Actual')
 
     return fig
 
@@ -305,8 +305,8 @@ def create_roc_curve(
     ))
 
     fig = _apply_dark_layout(fig, title, height=400)
-    fig.update_xaxis(title='False Positive Rate', range=[0, 1])
-    fig.update_yaxis(title='True Positive Rate', range=[0, 1])
+    fig.update_xaxes(title='False Positive Rate', range=[0, 1])
+    fig.update_yaxes(title='True Positive Rate', range=[0, 1])
 
     return fig
 
@@ -465,3 +465,36 @@ def create_metric_comparison_table(
     fig = _apply_dark_layout(fig, title, height=max(180, 50 + len(model_names) * 36))
 
     return fig
+
+def create_state_trajectory_chart(
+    predicted_states: np.ndarray,
+    feature_names: List[str],
+    top_indices: Optional[List[int]] = None,
+    title: str = "Predicted State Trajectory"
+) -> go.Figure:
+    """Plot how selected state features evolve over the forecast horizon."""
+    if top_indices is None:
+        n = min(4, predicted_states.shape[1])
+        top_indices = list(range(n))
+
+    x = list(range(predicted_states.shape[0]))
+    marker_colors = [COLORS['secondary'], COLORS['primary'], COLORS['warning'], COLORS['purple']]
+    fig = go.Figure()
+
+    for i, idx in enumerate(top_indices[:4]):
+        name = feature_names[idx] if idx < len(feature_names) else f"feature_{idx}"
+        fig.add_trace(go.Scatter(
+            x=x, y=predicted_states[:, idx],
+            mode='lines+markers',
+            name=name,
+            line=dict(color=marker_colors[i % len(marker_colors)], width=2),
+            marker=dict(size=5),
+            hovertemplate='Step %{x}<br>%{name}: %{y:.4f}<extra></extra>',
+        ))
+
+    fig = _apply_dark_layout(fig, title, height=380)
+    fig.update_xaxes(title='Forecast Step')
+    fig.update_yaxes(title='State Value')
+
+    return fig
+

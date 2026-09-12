@@ -236,17 +236,22 @@ def main():
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), os.path.join(args.output_dir, 'best_model.pth'))
-            print("  Saved best model")
+            if config_dict['model']['type'] == 'transformer':
+                torch.save(model.state_dict(), os.path.join(args.output_dir, 'best_model.pth'))
+                print("  Saved best model")
 
-    # 9. Save final model and history
+    # 9. Save final model and per-type artifacts
     model_suffix = config_dict['model']['type']
     torch.save(model.state_dict(), os.path.join(args.output_dir, f'{model_suffix}_model.pth'))
-    torch.save(model.state_dict(), os.path.join(args.output_dir, 'final_model.pth'))
-    with open(os.path.join(args.output_dir, 'history.json'), 'w') as f:
-        json.dump(history, f)
     with open(os.path.join(args.output_dir, f'history_{model_suffix}.json'), 'w') as f:
         json.dump(history, f)
+
+    # Only the primary (transformer) World Model owns the generic checkpoint
+    # so cross-type training runs do not clobber the dashboard default.
+    if model_suffix == 'transformer':
+        torch.save(model.state_dict(), os.path.join(args.output_dir, 'final_model.pth'))
+        with open(os.path.join(args.output_dir, 'history.json'), 'w') as f:
+            json.dump(history, f)
 
     print("\nTraining Summary:")
     print(f"Final Train Loss: {history['train_loss'][-1]:.4f}")
