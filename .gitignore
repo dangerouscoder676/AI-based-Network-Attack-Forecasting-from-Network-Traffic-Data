@@ -42,6 +42,8 @@ models/*.pt
 !models/final_model.pth
 !models/transformer_model.pth
 !models/lstm_model.pth
+!models/best_live_model.pth
+!models/live_transformer_model.pth
 results/*.png
 results/*.csv
 

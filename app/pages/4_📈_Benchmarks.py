@@ -43,11 +43,11 @@ benchmarks = load_benchmarks()
 
 col_run = st.columns([1, 2])[0]
 if col_run.button("🔄 Re-run Benchmark (scripts/evaluate.py)", type="secondary"):
-    py = os.path.join(PROJECT_ROOT, ".venv", "Scripts", "python.exe")
-    script = os.path.join(PROJECT_ROOT, "scripts", "evaluate.py")
+    py = os.path.join(_PROJECT_ROOT, ".venv", "Scripts", "python.exe")
+    script = os.path.join(_PROJECT_ROOT, "scripts", "evaluate.py")
     cmd = [py, "-W", "ignore::UserWarning", script]
     with st.spinner("Running benchmark (this may take a minute)..."):
-        proc = subprocess.run(cmd, cwd=PROJECT_ROOT, capture_output=True, text=True, timeout=1800)
+        proc = subprocess.run(cmd, cwd=_PROJECT_ROOT, capture_output=True, text=True, timeout=1800)
     if proc.returncode == 0:
         st.success("Benchmark completed. Results refreshed.")
     else:

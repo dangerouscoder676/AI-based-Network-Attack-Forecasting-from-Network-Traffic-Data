@@ -35,9 +35,44 @@ def get_config():
 
 
 # ─── Model loading (cached) ──────────────────────────────────────────────────
+def _model_candidates(model_type: str, model_path: str, family: str):
+    """Ordered checkpoint candidates for ``model_type`` + ``family``.
+
+    family "live" prefers checkpoints trained on :class:`LiveStateMapper` states
+    (``scripts/train_live.py``); family "offline" uses the PCA-pipeline weights.
+    """
+    root = os.path.join(PROJECT_ROOT, "models")
+    names = [
+        f"live_{model_type}_model.pth",
+        f"{model_type}_live_model.pth",
+        "best_live_model.pth",
+        f"{model_type}_model.pth",
+        "best_model.pth",
+    ]
+    if family == "offline":
+        names = [f"{model_type}_model.pth", "best_model.pth"]
+    return [p for p in ([model_path] + [os.path.join(root, n) for n in names]) if p]
+
+
+def available_live_models() -> list:
+    """UI helper: labels for model checkpoints usable in the live path."""
+    from src.utils.config import load_config
+
+    cfg = load_config(os.path.join(PROJECT_ROOT, "config.yaml"))
+    dtype = cfg["model"].get("type", "transformer")
+    out = [("Live World Model (temporal transformer)", dtype, "live")]
+    if os.path.exists(os.path.join(PROJECT_ROOT, "models", "lstm_live_model.pth")):
+        out.append(("LSTM Baseline (live-trained)", "lstm", "live"))
+    elif os.path.exists(os.path.join(PROJECT_ROOT, "models", "lstm_model.pth")):
+        out.append(("LSTM Baseline (offline weights — not live-trained)", "lstm", "live"))
+    if not os.path.exists(os.path.join(PROJECT_ROOT, "models", "best_live_model.pth")):
+        out.append(("Offline transformer (PCA states — not recommended for live)", dtype, "offline"))
+    return out
+
+
 @st.cache_resource(show_spinner="Loading World Model...")
-def load_model(model_type: str = "transformer", model_path: str = None):
-    """Load a WorldModel checkpoint. Falls back to best_model.pth.
+def load_model(model_type: str = "transformer", model_path: str = None, family: str = "offline"):
+    """Load a WorldModel checkpoint. ``family`` picks live vs offline weights.
 
     Returns None when no weights exist; callers surface the error.
     """
@@ -49,12 +84,12 @@ def load_model(model_type: str = "transformer", model_path: str = None):
     config_dict["model"]["type"] = model_type
     model = WorldModel.from_config(config_dict)
 
-    candidate = model_path or os.path.join(PROJECT_ROOT, "models", f"{model_type}_model.pth")
-    if not os.path.exists(candidate):
-        candidate = os.path.join(PROJECT_ROOT, "models", f"{model_type}_model.pth")
-    if not os.path.exists(candidate):
-        candidate = os.path.join(PROJECT_ROOT, "models", "best_model.pth")
-    if not os.path.exists(candidate):
+    candidate = None
+    for path in _model_candidates(model_type, model_path, family):
+        if path and os.path.exists(path):
+            candidate = path
+            break
+    if candidate is None:
         return None
 
     model.load_state_dict(torch_load(candidate))

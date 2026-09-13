@@ -37,19 +37,49 @@ streamlit run app/app.py
 > LSTM baseline (`models/lstm_model.pth`), regenerated synthetic data and benchmark results so
 > the dashboard works immediately after `pip install`.
 
+## Live Traffic + Network Scanning
+
+Two pages talk to a **real network** (for own-hotspot / lab demos):
+
+- **📡 Live Monitor** — captures traffic on a live interface, maps each 5 s window into
+  76-dim live states (`src/data/live_capture.py`), and runs the K-step forecast. Uses the
+  live-trained checkpoint (`models/best_live_model.pth`, from `scripts/train_live.py`).
+- **🛰️ Network Scout** — the "connect to a network, analyse it, predict threats" page:
+  1. Enumerates hosts on the target subnet (ARP sweep when Npcap is installed, ICMP `ping`
+     sweep otherwise — no install required).
+  2. Runs a light TCP connect scan on curated common ports.
+  3. Scores each host's attack surface and maps it to MITRE ATT&CK techniques (T1046/T1190/T1078).
+  4. Replays the scanner's **own** SYN probes through the flow → state → world-model pipeline
+     (`emit_probe_flows`) so the forecast reacts to the reconnaissance it just performed
+     (0 probes sent twice over the wire).
+
+CLI equivalent:
+
+```bash
+python scripts/scan_network.py --network 192.168.1.0/24 --ports 22,80,443,445,3389 --forecast
+# optional: --method {auto,arp,icmp) · --timeout 0.8 · --json out.json
+```
+
+**Npcap (optional):** only ARP host discovery needs it. Without Npcap the Scout falls back to
+ICMP echo discovery and the Live Monitor to whatever interface state is exposed; the scanner,
+risk scoring and world-model forecast still work. Install from https://npcap.com/#download if you
+want ARP/MAC enumeration and full packet capture.
+
 ## Dashboard
 
 `streamlit run app/app.py` opens a dark-themed multi-page app:
 
 | Page | Purpose |
 |------|---------|
-| **Dashboard** | Live forecast — threat gauge, infiltration timeline, predicted stage timeline, temporal-attention heatmap, network-state heatmap, alert feed |
+| **📡 Live Monitor** | Live capture → rolling K-step forecast, interface selector, live-trained World Model |
+| **🛰️ Network Scout** | Real-network host discovery + port scan → attack-surface scoring → world-model forecast on the scan |
+| **Dashboard** | Static data — threat gauge, infiltration timeline, predicted stage timeline, temporal-attention heatmap, network-state heatmap, alert feed |
 | **Analysis** | Deep dive — predicted state trajectory, kill chain, temporal attention, SHAP feature attributions, MITRE ATT&CK mapping per stage |
 | **Benchmarks** | Model comparison table, ROC curves, per-stage confusion matrices, training curves |
 | **About** | Architecture, MITRE mapping, dataset and usage documentation |
 
-Data sources (sidebar): **Synthetic Demo** data, an **uploaded** CSV (CIC-IDS-2018 flow format
-or NetSeer state format) / PCAP, or a **directory** of CSVs.
+Data sources (static-data pages): **Synthetic Demo** data, an **uploaded** CSV (CIC-IDS-2018 flow
+format or NetSeer state format) / PCAP, or a **directory** of CSVs.
 
 ## Pipeline
 
@@ -86,23 +116,26 @@ Alerts · MITRE mapping · Explainability       src/prediction/alert_generator.p
 │   ├── app.py            Landing page
 │   ├── theme.py          Shared dark theme + page setup
 │   ├── session.py        Data/model/inference helpers for pages
-│   ├── pages/            Dashboard · Analysis · Benchmarks · About
+│   ├── pages/            Live Monitor · Network Scout · Dashboard · Analysis · Benchmarks · About
 │   └── components/       charts.py · sidebar.py · explainability_panel.py
 ├── src/
-│   ├── data/             parsers, feature extraction, state building, synthetic generator
+│   ├── data/             parsers, feature extraction, state building, synthetic generator,
+│   │                     live capture engine, active network scanner
 │   ├── models/           world model, temporal transformer, LSTM & logistic baselines
 │   ├── prediction/       rollout engine, alert generator, MITRE mapper
 │   ├── explainability/   attention + SHAP explainers, feature reports
 │   └── utils/            config, device, seeding
 ├── scripts/
 │   ├── train.py          training entrypoint
+│   ├── train_live.py     train on live-style flow states -> models/best_live_model.pth
+│   ├── scan_network.py   CLI network scanner + world-model forecast
 │   ├── evaluate.py       benchmark harness (metrics + ROC + confusion matrices)
 │   ├── generate_synthetic.py
 │   └── download_data.py  optional CIC-IDS-2018 downloader
 ├── data/synthetic/       synthetic demo dataset + dashboard CSV
 ├── models/               trained checkpoints + training histories
 ├── results/              benchmark_results.json
-├── tests/                unittest suite (8 tests)
+├── tests/                unittest suite
 └── config.yaml           all pipeline/model/training configuration
 ```
 
@@ -140,5 +173,7 @@ metrics because overlapping sliding windows are highly self-similar — treat th
 - The attention weights shown in the dashboard are the **real** per-head attention matrices
   captured by the custom `TemporalEncoderLayer` (torch ≥ 2.13 fuses the built-in
   `nn.TransformerEncoderLayer` fast path and hides attention at the Python level).
+- **scapy is pinned to 2.6.1** in `requirements.txt` — Scapy 2.7 broke the classic packet API
+  (`pkt.haslayer`, `IP in pkt`) this codebase relies on.
 - Runs fully offline on CPU by default (`training.device: auto`).
 - Research prototype; probabilistic simulations are not guarantees of intrusion.
