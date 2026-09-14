@@ -257,6 +257,55 @@ DARK_THEME_CSS = """
     hr {
         border-color: rgba(0, 255, 170, 0.1);
     }
+
+    /* One-click console: stat tiles, device cards, door chips */
+    .stat-tile {
+        background: rgba(13, 21, 37, 0.6);
+        border: 1px solid rgba(0, 255, 170, 0.12);
+        border-radius: 14px;
+        padding: 16px 18px;
+        text-align: center;
+        height: 100%;
+    }
+    .stat-tile .stat-icon { font-size: 1.7rem; }
+    .stat-tile .stat-value { font-size: 1.7rem; font-weight: 800; margin: 2px 0; }
+    .stat-tile .stat-label { font-size: 0.78rem; color: rgba(255, 255, 255, 0.5); letter-spacing: 0.5px; }
+
+    .device-card {
+        background: rgba(13, 21, 37, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 14px 16px;
+        height: 100%;
+        border-left: 3px solid #3fb950;
+    }
+    .device-card.warn { border-left-color: #d29922; }
+    .device-card.danger { border-left-color: #f85149; }
+
+    .door-chip {
+        display: inline-block;
+        margin: 3px 3px 0 0;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 0.74rem;
+        background: rgba(255, 153, 0, 0.12);
+        border: 1px solid rgba(255, 153, 0, 0.35);
+        color: #ffb366;
+        white-space: nowrap;
+    }
+    .door-chip.locked {
+        background: rgba(0, 255, 170, 0.08);
+        border-color: rgba(0, 255, 170, 0.25);
+        color: #00ffaa;
+    }
+
+    .howto-card {
+        background: rgba(13, 21, 37, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        border-radius: 12px;
+        padding: 14px 16px;
+        height: 100%;
+    }
 </style>
 """
 

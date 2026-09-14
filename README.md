@@ -37,6 +37,29 @@ streamlit run app/app.py
 > LSTM baseline (`models/lstm_model.pth`), regenerated synthetic data and benchmark results so
 > the dashboard works immediately after `pip install`.
 
+## For a non-technical audience (one-click console)
+
+The home page (`streamlit run app/app.py`) is a friendly console with three buttons —
+no CIDR maths, no sliders required:
+
+1. **🛰️ Scan my Wi-Fi** — auto-detects the network you're connected to right now, finds the
+   devices, checks which doors are open, then asks the AI what an attacker would do next.
+   Safe (LOW/NONE risk) networks get a green verdict with practical tips only — no alarming
+   percentages. Exposed networks get the full AI attack-path forecast in plain words.
+   Each open door also comes with a **close-guide** (what it is, why it's risky, how to turn it
+   off), plus a "🧪 see this network with those doors closed" button that safely simulates the
+   tightened version before you touch anything.
+   Advanced controls (interface, port list, timeout) are tucked behind an expander.
+2. **🧪 Simulated attack** — plays a realistic attack against a *fake* company network behind
+   the scenes (nothing touches the wire), then narrates what happened and shows how the AI's
+   confidence rose as the attack played out. Great for a judges' demo with zero network setup.
+3. **🔭 Live watch** — leaves the AI running on your current network; a rolling alarm fires in
+   plain words if an attack pattern starts ("🚨 An attack pattern is starting — AI confidence 87%").
+
+The artificial intelligence is the same pipeline everywhere; the console just hides the
+technical plumbing. Power users keep the full dashboard, Network Scout and Live Monitor pages
+in the sidebar.
+
 ## Live Traffic + Network Scanning
 
 Two pages talk to a **real network** (for own-hotspot / lab demos):
@@ -71,6 +94,7 @@ want ARP/MAC enumeration and full packet capture.
 
 | Page | Purpose |
 |------|---------|
+| **Home (console)** | One-click friendly entry: scan my Wi-Fi · simulated attack · live watch |
 | **📡 Live Monitor** | Live capture → rolling K-step forecast, interface selector, live-trained World Model |
 | **🛰️ Network Scout** | Real-network host discovery + port scan → attack-surface scoring → world-model forecast on the scan |
 | **Dashboard** | Static data — threat gauge, infiltration timeline, predicted stage timeline, temporal-attention heatmap, network-state heatmap, alert feed |
@@ -113,7 +137,7 @@ Alerts · MITRE mapping · Explainability       src/prediction/alert_generator.p
 
 ```
 ├── app/                  Streamlit dashboard
-│   ├── app.py            Landing page
+│   ├── app.py            One-click console (scan / simulate / live watch) + landing
 │   ├── theme.py          Shared dark theme + page setup
 │   ├── session.py        Data/model/inference helpers for pages
 │   ├── pages/            Live Monitor · Network Scout · Dashboard · Analysis · Benchmarks · About
@@ -122,7 +146,8 @@ Alerts · MITRE mapping · Explainability       src/prediction/alert_generator.p
 │   ├── data/             parsers, feature extraction, state building, synthetic generator,
 │   │                     live capture engine, active network scanner
 │   ├── models/           world model, temporal transformer, LSTM & logistic baselines
-│   ├── prediction/       rollout engine, alert generator, MITRE mapper
+│   ├── prediction/       rollout engine, alert generator, MITRE mapper, attack simulator
+│   │                     (dummy-network attack playback + plain-language reporting)
 │   ├── explainability/   attention + SHAP explainers, feature reports
 │   └── utils/            config, device, seeding
 ├── scripts/
