@@ -1,0 +1,1 @@
+export default function Panel({ title, kicker, action, children, className = '' }) { return <section className={`panel ${className}`}><div className="panel-head"><div>{kicker && <div className="eyebrow">{kicker}</div>}{title && <h2>{title}</h2>}</div>{action}</div>{children}</section>; }

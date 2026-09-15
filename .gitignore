@@ -13,6 +13,7 @@ dist/
 .venv/
 venv/
 env/
+node_modules/
 
 # IDE / OS
 .idea/
@@ -22,9 +23,9 @@ env/
 Thumbs.db
 
 # Data (raw/processed are large; keep synthetic demo + results)
-data/raw/
-data/processed/
-data/uploads/
+backend/data/raw/
+backend/data/processed/
+backend/data/uploads/
 *.pcap
 *.pcapng
 *.pcap.gz
@@ -36,16 +37,16 @@ data/uploads/
 *.log
 
 # Models / outputs (keep shipped demo checkpoints + training histories)
-models/*.pth
-models/*.pt
-!models/best_model.pth
-!models/final_model.pth
-!models/transformer_model.pth
-!models/lstm_model.pth
-!models/best_live_model.pth
-!models/live_transformer_model.pth
-results/*.png
-results/*.csv
+backend/models/*.pth
+backend/models/*.pt
+!backend/models/best_model.pth
+!backend/models/final_model.pth
+!backend/models/transformer_model.pth
+!backend/models/lstm_model.pth
+!backend/models/best_live_model.pth
+!backend/models/live_transformer_model.pth
+backend/results/*.png
+backend/results/*.csv
 
 # Secrets & local config
 .env

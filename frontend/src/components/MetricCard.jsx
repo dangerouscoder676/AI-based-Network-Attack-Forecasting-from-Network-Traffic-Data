@@ -1,0 +1,2 @@
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+export default function MetricCard({ label, value, note, tone = 'neutral', trend }) { return <div className="metric-card"><div className="metric-label">{label}</div><div className="metric-value">{value}</div><div className={`metric-note ${tone}`}>{trend && (trend > 0 ? <ArrowUpRight size={14}/> : <ArrowDownRight size={14}/>)}{note}</div></div>; }

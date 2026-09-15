@@ -1,0 +1,1 @@
+export default function ChartBars({ values, labels, color = '#245b78' }) { return <div className="bar-chart">{values.map((v, i) => <div className="bar-wrap" key={`${labels?.[i] || i}`}><div className="bar" style={{height:`${Math.max(8, v * 100)}%`, background: color}}/><span>{labels?.[i] || i + 1}</span></div>)}</div>; }
